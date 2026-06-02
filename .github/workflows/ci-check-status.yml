@@ -1,0 +1,42 @@
+name: CI Check - Set Status
+
+on:
+  workflow_run:
+    workflows: ["CI Check"]
+    types:
+      - completed
+
+permissions:
+  statuses: write
+
+jobs:
+  set_status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "${{ github.event.workflow_run.conclusion }}" in
+            success)
+              STATE="success"
+              DESCRIPTION="All CI checks passed"
+              ;;
+            cancelled|skipped)
+              STATE="pending"
+              DESCRIPTION="CI checks were cancelled or skipped"
+              ;;
+            *)
+              STATE="failure"
+              DESCRIPTION="One or more CI checks failed"
+              ;;
+          esac
+
+          gh api \
+            --method POST \
+            repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }} \
+            -f state=$STATE \
+            -f description="$DESCRIPTION" \
+            -f context="CI Check" \
+            -f target_url="${{ github.event.workflow_run.html_url }}"
