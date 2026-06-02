@@ -22,11 +22,10 @@ def _make_config(**overrides):
         approval_emoji="👍",
         dry_run=False,
         redaction_enabled=True,
-        redaction_threshold=3,
+        redaction_threshold=overrides.get("redaction_threshold", 3),
         redaction_emoji="❌",
         redaction_channel_id=None,
         redaction_ignore_channel_ids=[8, 9],
-        **overrides,
     )
 
 
@@ -51,6 +50,33 @@ def _make_payload(**overrides):
     )
     base.update(overrides)
     return cast(RawReactionActionEvent, SimpleNamespace(**base))
+
+
+def _make_fake_message(mocker):
+    message = mocker.Mock()
+    message.id = 1234
+    message.author = SimpleNamespace(bot=False, mention="@user")
+    message.reactions = [SimpleNamespace(emoji="❌", count=3)]
+    message.delete = mocker.AsyncMock()
+
+    return message
+
+
+def _make_fake_channel(mocker, message):
+    channel = mocker.Mock(spec=TextChannel)
+    channel.fetch_message = mocker.AsyncMock(return_value=message)
+    channel.send = mocker.AsyncMock()
+    message.channel = channel
+
+    return channel
+
+
+def _make_fake_bot(mocker, channel):
+    bot = mocker.Mock(user=None)
+    bot.get_channel.return_value = channel
+    bot.fetch_channel = mocker.AsyncMock()
+
+    return bot
 
 
 def test_on_raw_reaction_add_ignores_rules_message(mocker):
@@ -85,28 +111,32 @@ def test_on_raw_reaction_add_ignores_configured_channels(mocker):
     asyncio.run(run())
 
 
+def test_on_0_reaction_threshold(mocker):
+    async def run():
+        config = _make_config(redaction_threshold=0)
+        message = _make_fake_message(mocker)
+        channel = _make_fake_channel(mocker, message)
+        bot = _make_fake_bot(mocker, channel)
+        ctx = _make_ctx(mocker, config, bot=bot)
+
+        cog = RedactionCog(ctx)
+        await cog.on_raw_reaction_add(_make_payload())
+
+        bot.get_channel.assert_not_called()
+        bot.fetch_channel.assert_not_called()
+
+    asyncio.run(run())
+
+
 def test_on_raw_reaction_add_redacts_matching_message(mocker):
     async def run():
         config = _make_config()
-
-        message = mocker.Mock()
-        message.id = 1234
-        message.author = SimpleNamespace(bot=False, mention="@user")
-        message.reactions = [SimpleNamespace(emoji="❌", count=3)]
-        message.delete = mocker.AsyncMock()
-
-        channel = mocker.Mock(spec=TextChannel)
-        channel.fetch_message = mocker.AsyncMock(return_value=message)
-        channel.send = mocker.AsyncMock()
-        message.channel = channel
-
-        bot = mocker.Mock(user=None)
-        bot.get_channel.return_value = channel
-        bot.fetch_channel = mocker.AsyncMock()
-
+        message = _make_fake_message(mocker)
+        channel = _make_fake_channel(mocker, message)
+        bot = _make_fake_bot(mocker, channel)
         ctx = _make_ctx(mocker, config, bot=bot)
-        cog = RedactionCog(ctx)
 
+        cog = RedactionCog(ctx)
         await cog.on_raw_reaction_add(_make_payload())
 
         bot.get_channel.assert_called_once_with(7)

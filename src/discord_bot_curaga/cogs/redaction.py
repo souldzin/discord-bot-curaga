@@ -50,6 +50,9 @@ class RedactionCog(commands.Cog):
         if not self.config.redaction_enabled:
             return False
 
+        if self.config.redaction_threshold <= 0:
+            return False
+
         if payload.guild_id != self.config.guild_id:
             return False
 
