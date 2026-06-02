@@ -30,10 +30,11 @@ class CuragaBot(commands.Bot):
         if self._ctx is None:
             raise RuntimeError("Must call setup_context first!")
 
-        from discord_bot_curaga.cogs import heartbeat, onboarding
+        from discord_bot_curaga.cogs import heartbeat, onboarding, redaction
 
         await onboarding.setup(self, self._ctx)
         await heartbeat.setup(self, self._ctx)
+        await redaction.setup(self, self._ctx)
 
 
 def setup_logging(logger: logging.Logger, ctx: AppContext):

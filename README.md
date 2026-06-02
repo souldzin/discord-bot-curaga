@@ -46,6 +46,15 @@ APPROVAL_EMOJI=👍
 
 # If '1' or 'true', bot logs actions but does not assign roles
 DRY_RUN=0
+
+# Redaction feature (delete and replace messages after enough ❌ reactions)
+REDACTION_ENABLED=0
+REDACTION_THRESHOLD=3
+REDACTION_EMOJI=❌
+REDACTION_CHANNEL_ID=
+
+# Optional comma-separated list of channels to ignore for redaction
+REDACTION_IGNORE_CHANNEL_IDS=
 ```
 
 ## Run locally

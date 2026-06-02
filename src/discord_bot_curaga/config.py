@@ -2,6 +2,21 @@ from dataclasses import dataclass
 import os
 
 
+def _optional_int_env(name: str) -> int | None:
+    value = os.environ.get(name)
+    if value in (None, "", "0"):
+        return None
+    return int(value)
+
+
+def _optional_int_list_env(name: str) -> list[int]:
+    value = os.environ.get(name, "")
+    if not value.strip():
+        return []
+
+    return [int(item.strip()) for item in value.split(",") if item.strip()]
+
+
 @dataclass
 class AppConfig:
     token: str
@@ -12,6 +27,11 @@ class AppConfig:
     channel_id_approval: int
     approval_emoji: str
     dry_run: bool
+    redaction_enabled: bool
+    redaction_threshold: int
+    redaction_emoji: str
+    redaction_channel_id: int | None
+    redaction_ignore_channel_ids: list[int]
 
     @staticmethod
     def create_from_env() -> "AppConfig":
@@ -24,4 +44,12 @@ class AppConfig:
             channel_id_approval=int(os.environ["CHANNEL_ID_APPROVAL"]),
             approval_emoji=os.environ.get("APPROVAL_EMOJI", "👍"),
             dry_run=os.environ.get("DRY_RUN", "0").lower() in ["1", "true"],
+            redaction_enabled=os.environ.get("REDACTION_ENABLED", "0").lower()
+            in ["1", "true"],
+            redaction_threshold=int(os.environ.get("REDACTION_THRESHOLD", "3")),
+            redaction_emoji=os.environ.get("REDACTION_EMOJI", "❌"),
+            redaction_channel_id=_optional_int_env("REDACTION_CHANNEL_ID"),
+            redaction_ignore_channel_ids=_optional_int_list_env(
+                "REDACTION_IGNORE_CHANNEL_IDS"
+            ),
         )
