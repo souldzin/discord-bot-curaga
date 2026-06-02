@@ -1,0 +1,7 @@
+.env*
+!.env.example
+
+# region: python env and caches ------------------------------------------------
+.venv/
+*.egg-info/
+__pycache__/

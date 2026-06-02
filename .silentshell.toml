@@ -1,0 +1,13 @@
+ignore-paths = [".venv", ".env"]
+
+[container]
+name             = "discord-bot-curaga"
+image_name       = "discord-bot-curaga_silentshell_env"
+image_dockerfile = "./config/silentshell.Dockerfile"
+image_user       = "mary"
+
+[container.volumes]
+"~/.pi" = "/home/mary/.pi"
+
+[env]
+PYTHONDONTWRITEBYTECODE = "1"
