@@ -14,7 +14,7 @@ class OnboardingCog(commands.Cog):
 
     @property
     def bot(self) -> commands.Bot:
-        return self.ctx.client.bot
+        return self.ctx.bot
 
     @property
     def client(self):

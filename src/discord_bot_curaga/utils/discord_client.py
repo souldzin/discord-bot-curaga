@@ -19,10 +19,6 @@ class DiscordClient:
         self._config = config
         self._logger = logger
 
-    @property
-    def bot(self) -> commands.Bot:
-        return self._bot
-
     @async_cache
     async def get_guild(self) -> discord.Guild:
         guild = self._bot.get_guild(self._config.guild_id)

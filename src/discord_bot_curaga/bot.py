@@ -65,6 +65,7 @@ def main():
         config=config,
         logger=logger,
         client=DiscordClient(bot=bot, config=config, logger=logger),
+        bot=bot,
     )
 
     setup_logging(logger, context)

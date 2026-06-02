@@ -1,0 +1,8 @@
+[flake8]
+extend-ignore =
+  # line length, let's just let black handle this
+  E501,
+  # whitespace before ':', seems to conflict with black
+  E203
+exclude = .git,__pycache__,dist
+

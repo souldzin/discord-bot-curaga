@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import asyncio
 from functools import wraps
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar, cast
 
 T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Coroutine[Any, Any, Any]])
 
 
-def async_cache(fn: Callable[..., Awaitable[T]]):
-    cache: dict[tuple[Any, ...], asyncio.Task[T]] = {}
+def async_cache(fn: F) -> F:
+    cache: dict[tuple[Any, ...], asyncio.Task[Any]] = {}
     lock = asyncio.Lock()
     marker = object()
 
     @wraps(fn)
-    async def wrapper(*args, **kwargs) -> T:
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         key = args + (marker,) + tuple(sorted(kwargs.items()))
 
         async with lock:
@@ -34,4 +35,4 @@ def async_cache(fn: Callable[..., Awaitable[T]]):
         cache.clear()
 
     wrapper.cache_clear = cache_clear  # type: ignore[attr-defined]
-    return wrapper
+    return cast(F, wrapper)
