@@ -3,7 +3,7 @@ import os
 
 
 @dataclass
-class BotConfig:
+class AppConfig:
     token: str
     guild_id: int
     message_id_rules: int
@@ -14,8 +14,8 @@ class BotConfig:
     dry_run: bool
 
     @staticmethod
-    def create_from_env() -> "BotConfig":
-        return BotConfig(
+    def create_from_env() -> "AppConfig":
+        return AppConfig(
             token=os.environ["DISCORD_TOKEN"],
             guild_id=int(os.environ["GUILD_ID"]),
             message_id_rules=int(os.environ["MESSAGE_ID_RULES"]),
