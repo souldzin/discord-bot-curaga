@@ -1,0 +1,32 @@
+name: CI Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: ./.github/actions/python-setup
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: make pip_install_ci
+
+      - name: Run linter
+        run: make lint
+
+      - name: Run tests
+        run: make test

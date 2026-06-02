@@ -51,8 +51,6 @@ DRY_RUN=0
 REDACTION_ENABLED=0
 REDACTION_THRESHOLD=3
 REDACTION_EMOJI=❌
-REDACTION_CHANNEL_ID=
-
 # Optional comma-separated list of channels to ignore for redaction
 REDACTION_IGNORE_CHANNEL_IDS=
 ```

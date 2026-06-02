@@ -1,5 +1,5 @@
 .PHONY: setup \
-	pip_install pip_lock \
+	pip_install pip_install_ci pip_lock \
 	test \
 	lint \
 	lint_py lint_py_flake8 lint_py_pyright lint_py_style lint_py_style_fix \
@@ -10,6 +10,12 @@ setup: pip_install
 pip_install:
 	pip install -r requirements.lock.txt
 	pip install -e .[dev]
+	pip check
+
+pip_install_ci:
+	python -m pip install --upgrade pip
+	pip install --no-deps -e .
+	pip install -r requirements.lock.txt
 	pip check
 
 pip_lock:
