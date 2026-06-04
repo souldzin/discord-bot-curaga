@@ -23,6 +23,7 @@ This is a simple Discord bot equipped with some random magic.
 ### Notes
 
 - Approval buttons are persistent across restarts.
+- `DRY_RUN` is pragmatic, not pure: it still posts the approval/rules views so you can test the flow, but it avoids the meaningful side-effect (role assignment) and doesn’t leave lasting state behind.
 - The bot logs status and warnings to the log channel.
 - A heartbeat message is posted every 10 minutes.
 - Admins can purge resolved approval requests with `/purge_approval_requests`.
@@ -44,7 +45,7 @@ ROLE_ID_APPROVED=
 # Role allowed to run admin-only commands
 ROLE_ID_ADMIN=
 
-# Bot log channel ID (optional but recommended)
+# Bot log channel ID
 CHANNEL_ID_LOG=
 
 # Moderator approval channel ID

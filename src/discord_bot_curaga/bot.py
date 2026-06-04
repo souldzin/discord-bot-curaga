@@ -34,6 +34,7 @@ class CuragaBot(commands.Bot):
             heartbeat,
             onboarding,
             redaction,
+            message_retention_policy,
             server_rules,
             ping,
         )
@@ -41,6 +42,7 @@ class CuragaBot(commands.Bot):
         await onboarding.setup(self, self._ctx)
         await heartbeat.setup(self, self._ctx)
         await redaction.setup(self, self._ctx)
+        await message_retention_policy.setup(self, self._ctx)
         await server_rules.setup(self, self._ctx)
         await ping.setup(self)
 
