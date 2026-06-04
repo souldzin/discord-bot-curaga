@@ -92,13 +92,14 @@ def _make_interaction(mocker, user, channel):
     )
 
 
-def _make_admin_client(mocker, admin_role, rules_channel):
+def _make_admin_client(mocker, admin_role, rules_channel, approval_channel):
     return cast(
         DiscordClient,
         SimpleNamespace(
             get_role_for_admin=mocker.AsyncMock(return_value=admin_role),
             fetch_message=mocker.AsyncMock(),
             get_channel_rules=mocker.AsyncMock(return_value=rules_channel),
+            get_channel_approval=mocker.AsyncMock(return_value=approval_channel),
         ),
     )
 
@@ -122,7 +123,10 @@ class TestServerRules:
         )
         self.admin_role = SimpleNamespace(id=self.config.role_id_admin)
         self.client = _make_admin_client(
-            mocker, admin_role=self.admin_role, rules_channel=self.rules_channel
+            mocker,
+            admin_role=self.admin_role,
+            rules_channel=self.rules_channel,
+            approval_channel=SimpleNamespace(),
         )
         self.bot = _make_bot(mocker)
         self.ctx = AppContext(
