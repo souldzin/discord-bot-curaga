@@ -22,13 +22,11 @@ def _make_config():
     return AppConfig(
         token="token",
         guild_id=1,
-        message_id_rules=99,
         role_id_approved=3,
         role_id_admin=4,
         channel_id_log=5,
         channel_id_approval=6,
         channel_id_rules=7,
-        approval_emoji="👍",
         dry_run=False,
         redaction_enabled=False,
         redaction_threshold=3,
@@ -92,18 +90,6 @@ class TestOnboardingRules:
         )
         self.subject = OnboardingCog(self.ctx)
 
-    def _make_raw_reaction_event(self):
-        return cast(
-            RawReactionActionEvent,
-            SimpleNamespace(
-                guild_id=self.config.guild_id,
-                user_id=123,
-                message_id=self.config.message_id_rules,
-                channel_id=7,
-                emoji=self.config.approval_emoji,
-            ),
-        )
-
     def _make_interaction(self, mocker, **overrides):
         base = dict(
             user=self.member,
@@ -124,20 +110,6 @@ class TestOnboardingRules:
             view = as_mock(self.bot.add_view).call_args.args[0]
             assert isinstance(view, ApprovalRequestView)
             as_async_mock(self.bot.close).assert_not_awaited()
-
-        asyncio.run(run())
-
-    def test_on_raw_reaction_add_uses_old_dm_flow(self, mocker):
-        self.setup_test_subject(mocker)
-        self.client.get_guild_member = mocker.AsyncMock(return_value=self.member)
-        self.subject._on_rules_acknowledge_via_reaction = mocker.AsyncMock()
-
-        async def run():
-            await self.subject.on_raw_reaction_add(self._make_raw_reaction_event())
-
-            as_async_mock(
-                self.subject._on_rules_acknowledge_via_reaction
-            ).assert_awaited_once_with(self.member)
 
         asyncio.run(run())
 

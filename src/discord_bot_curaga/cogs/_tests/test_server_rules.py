@@ -40,13 +40,11 @@ def _make_config(**overrides):
     return AppConfig(
         token="token",
         guild_id=1,
-        message_id_rules=99,
         role_id_approved=3,
         role_id_admin=4,
         channel_id_log=5,
         channel_id_approval=6,
         channel_id_rules=7,
-        approval_emoji="👍",
         dry_run=overrides.get("dry_run", False),
         redaction_enabled=False,
         redaction_threshold=3,

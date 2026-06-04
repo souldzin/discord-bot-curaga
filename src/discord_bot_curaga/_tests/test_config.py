@@ -6,7 +6,6 @@ from discord_bot_curaga.config import AppConfig
 def test_create_from_env_parses_redaction_ignore_channels(monkeypatch):
     monkeypatch.setenv("DISCORD_TOKEN", "token")
     monkeypatch.setenv("GUILD_ID", "1")
-    monkeypatch.setenv("MESSAGE_ID_RULES", "2")
     monkeypatch.setenv("ROLE_ID_APPROVED", "3")
     monkeypatch.setenv("ROLE_ID_ADMIN", "4")
     monkeypatch.setenv("CHANNEL_ID_LOG", "5")

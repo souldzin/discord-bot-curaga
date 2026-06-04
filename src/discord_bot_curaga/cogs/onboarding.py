@@ -43,26 +43,6 @@ class OnboardingCog(commands.Cog):
 
         await self._log(f"Hello world! {self.bot.user} is running...")
 
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if self.bot.user and payload.user_id == self.bot.user.id:
-            return
-
-        if payload.guild_id != self.config.guild_id:
-            return
-
-        if str(payload.emoji) != self.config.approval_emoji:
-            return
-
-        if payload.message_id != self.config.message_id_rules:
-            return
-
-        member = await self.client.get_guild_member(payload.user_id)
-        if member is None:
-            return
-
-        await self._on_rules_acknowledge_via_reaction(member)
-
     async def _log(self, message: str):
         self.ctx.logger.info(message)
 
@@ -103,19 +83,6 @@ class OnboardingCog(commands.Cog):
                 ephemeral=True,
             )
             return
-
-    async def _on_rules_acknowledge_via_reaction(self, member: discord.Member):
-        if await self._member_has_approved_role(member):
-            return
-
-        try:
-            await member.send(
-                "Thanks for accepting the rules! A moderator will review your request shortly."
-            )
-        except discord.Forbidden:
-            await self._log(f"[WARN] Could not DM {member.display_name} (DMs closed).")
-
-        await self._post_approval_request(member)
 
     async def _member_has_approved_role(self, member: discord.Member) -> bool:
         approved_role = await self.client.get_role_for_approved()

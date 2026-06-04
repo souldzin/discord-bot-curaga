@@ -21,13 +21,11 @@ def _optional_int_list_env(name: str) -> list[int]:
 class AppConfig:
     token: str
     guild_id: int
-    message_id_rules: int
     role_id_approved: int
     role_id_admin: int
     channel_id_log: int
     channel_id_approval: int
     channel_id_rules: int
-    approval_emoji: str
     dry_run: bool
     redaction_enabled: bool
     redaction_threshold: int
@@ -40,13 +38,11 @@ class AppConfig:
         return AppConfig(
             token=os.environ["DISCORD_TOKEN"],
             guild_id=int(os.environ["GUILD_ID"]),
-            message_id_rules=int(os.environ["MESSAGE_ID_RULES"]),
             role_id_approved=int(os.environ["ROLE_ID_APPROVED"]),
             role_id_admin=int(os.environ["ROLE_ID_ADMIN"]),
             channel_id_log=int(os.environ["CHANNEL_ID_LOG"]),
             channel_id_approval=int(os.environ["CHANNEL_ID_APPROVAL"]),
             channel_id_rules=int(os.environ["CHANNEL_ID_RULES"]),
-            approval_emoji=os.environ.get("APPROVAL_EMOJI", "👍"),
             dry_run=os.environ.get("DRY_RUN", "0").lower() in ["1", "true"],
             redaction_enabled=os.environ.get("REDACTION_ENABLED", "0").lower()
             in ["1", "true"],
