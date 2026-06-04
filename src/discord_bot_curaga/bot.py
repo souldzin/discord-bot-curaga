@@ -30,11 +30,28 @@ class CuragaBot(commands.Bot):
         if self._ctx is None:
             raise RuntimeError("Must call setup_context first!")
 
-        from discord_bot_curaga.cogs import heartbeat, onboarding, redaction
+        from discord_bot_curaga.cogs import (
+            heartbeat,
+            onboarding,
+            redaction,
+            server_rules,
+            ping,
+        )
 
         await onboarding.setup(self, self._ctx)
         await heartbeat.setup(self, self._ctx)
         await redaction.setup(self, self._ctx)
+        await server_rules.setup(self, self._ctx)
+        await ping.setup(self)
+
+        guild = discord.Object(id=self._ctx.config.guild_id)
+        self.tree.copy_global_to(guild=guild)
+
+        try:
+            await self.tree.sync(guild=guild)
+        except Exception as e:
+            self._ctx.logger.error(f"Failed to sync application commands: {e}")
+            await self.close()
 
 
 def setup_logging(logger: logging.Logger, ctx: AppContext):
