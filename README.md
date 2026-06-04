@@ -4,13 +4,25 @@ This is a simple Discord bot equipped with some random magic.
 
 ## Features
 
-### Onboarding workflow
+### Onboarding
 
-1. A user reacts with `👍` (or configured emoji) on the rules message.
-2. The bot DMs the user that a moderator will review soon.
-3. The bot posts an approval request embed in the approval channel.
-4. Moderators click **Approve** or **Reject**.
-5. On **Approve**, the bot assigns the configured approved role.
+1. Admins can run `/rules_sync` to rebuild the rules channel from source message IDs.
+2. The final rules post uses a persistent **I Agree** button.
+3. A user acknowledges the rules via the button flow.
+4. The bot sends the user an ephemeral confirmation.
+5. The bot posts an approval request embed in the approval channel.
+6. Moderators click **Approve** or **Reject**.
+7. On **Approve**, the bot assigns the configured approved role.
+
+### Redaction
+
+- Optional redaction mode can delete messages after enough `REDACTION_EMOJI` reactions.
+- Redaction can be scoped with `REDACTION_CHANNEL_ID` and/or `REDACTION_IGNORE_CHANNEL_IDS`.
+
+### Onboarding (Legacy)
+
+- The legacy flow still supports acknowledging the rules via reaction on the old rules message.
+- This path is kept for migration, but is intended to be removed later.
 
 Notes:
 
@@ -28,9 +40,6 @@ DISCORD_TOKEN=
 
 # Discord server ID
 GUILD_ID=
-
-# Rules message ID users react to
-MESSAGE_ID_RULES=
 
 # Role assigned when approved
 ROLE_ID_APPROVED=
