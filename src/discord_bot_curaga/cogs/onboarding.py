@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from discord_bot_curaga.context import AppContext
+from discord_bot_curaga.utils.discord_types import (
+    ChannelWithDeleteMessages,
+)
+from discord_bot_curaga.utils.iter import chunked
 from discord_bot_curaga.views.approval_request import ApprovalRequestView
 
 
@@ -30,6 +37,7 @@ class OnboardingCog(commands.Cog):
             await self.client.get_guild()
             await self.client.get_channel_approval()
             await self.client.get_role_for_approved()
+            await self.client.get_role_for_admin()
         except RuntimeError as e:
             self.ctx.logger.warning(
                 f"Startup failed: {e}", extra={"skip_discord": True}
@@ -43,28 +51,170 @@ class OnboardingCog(commands.Cog):
 
         await self._log(f"Hello world! {self.bot.user} is running...")
 
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if self.bot.user and payload.user_id == self.bot.user.id:
-            return
-
-        if payload.guild_id != self.config.guild_id:
-            return
-
-        if str(payload.emoji) != self.config.approval_emoji:
-            return
-
-        if payload.message_id != self.config.message_id_rules:
-            return
-
-        member = await self.client.get_guild_member(payload.user_id)
-        if member is None:
-            return
-
-        await self._on_rules_acknowledge_via_reaction(member)
-
     async def _log(self, message: str):
         self.ctx.logger.info(message)
+
+    @app_commands.command(
+        name="purge_approval_requests",
+        description="Delete resolved approval requests older than a certain age from the approval channel.",
+    )
+    @app_commands.guild_only()
+    @app_commands.describe(
+        minutes_old="Only delete resolved approval requests older than this many minutes (default: 10)."
+    )
+    async def purge_approval_requests(
+        self, interaction: discord.Interaction, minutes_old: int = 10
+    ):
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message(
+                "This command can only be used in a server.", ephemeral=True
+            )
+            return
+
+        try:
+            has_admin_role = await self._has_admin_role(interaction.user)
+        except RuntimeError as e:
+            await interaction.response.send_message(f"[ERROR] {e}", ephemeral=True)
+            return
+
+        if not has_admin_role:
+            await interaction.response.send_message(
+                "You do not have permission to run this command.", ephemeral=True
+            )
+            return
+
+        if minutes_old < 0:
+            await interaction.response.send_message(
+                "minutes_old must be 0 or greater.", ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        try:
+            approval_channel = await self.client.get_channel_approval()
+        except RuntimeError as e:
+            await interaction.edit_original_response(content=f"[ERROR] {e}")
+            return
+
+        if not isinstance(approval_channel, ChannelWithDeleteMessages):
+            await interaction.edit_original_response(
+                content="[ERROR] Channel is not a text channel."
+            )
+            return
+
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes_old)
+        deleted_messages: list[discord.Message] = []
+        skipped_pending = 0
+        messages_iter = approval_channel.history(
+            limit=None, oldest_first=True, before=cutoff
+        )
+
+        async for message in messages_iter:
+            if message.created_at > cutoff:
+                continue
+
+            if not self._is_approval_request_message(message):
+                continue
+
+            status = self._approval_request_status(message)
+            if status is None:
+                skipped_pending += 1
+                continue
+
+            deleted_messages.append(message)
+
+        deleted_count = len(deleted_messages)
+
+        if not deleted_messages:
+            await interaction.edit_original_response(
+                content=("No messages found to delete.")
+            )
+        elif self.config.dry_run:
+            await interaction.edit_original_response(
+                content=(
+                    f"Dry run complete. Would delete {deleted_count} resolved approval request(s) older than {minutes_old} minute(s)."
+                )
+            )
+        else:
+            await self._delete_approval_requests(approval_channel, deleted_messages)
+            await interaction.edit_original_response(
+                content=(
+                    f"Purged {deleted_count} resolved approval request(s) older than {minutes_old} minute(s)."
+                )
+            )
+
+        await self._log(
+            f"{interaction.user} purged {deleted_count} approval request(s); skipped {skipped_pending} pending request(s)."
+        )
+
+    async def _has_admin_role(self, member: discord.Member) -> bool:
+        admin_role = await self.client.get_role_for_admin()
+        return admin_role in member.roles
+
+    def _is_approval_request_message(self, message: discord.Message) -> bool:
+        if self.bot.user is not None:
+            if getattr(message.author, "id", None) != self.bot.user.id:
+                return False
+        elif not getattr(message.author, "bot", False):
+            return False
+
+        if not message.embeds:
+            return False
+
+        embed = message.embeds[0]
+        if embed.title != "Approval Request":
+            return False
+
+        footer_text = embed.footer.text or ""
+        return footer_text.startswith("member_id:")
+
+    def _approval_request_status(self, message: discord.Message) -> bool | None:
+        if not message.embeds:
+            return None
+
+        for field in message.embeds[0].fields:
+            if field.name != "Status":
+                continue
+
+            status_value = field.value.strip().lower() if field.value else ""
+            if status_value.startswith("approved"):
+                return True
+            if status_value.startswith("rejected"):
+                return False
+            return None
+
+        return None
+
+    async def _delete_approval_requests(
+        self, channel: ChannelWithDeleteMessages, messages: list[discord.Message]
+    ):
+        for batch in chunked(messages, 100):
+            try:
+                await channel.delete_messages(batch)
+            except discord.Forbidden:
+                await self._log(
+                    "[WARN] Missing permissions to bulk delete approval requests"
+                )
+                await self._delete_approval_requests_individually(batch)
+            except discord.HTTPException as e:
+                await self._log(f"[WARN] Failed to bulk delete approval requests: {e}")
+                await self._delete_approval_requests_individually(batch)
+
+    async def _delete_approval_requests_individually(
+        self, messages: list[discord.Message]
+    ):
+        for message in messages:
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                await self._log(
+                    f"[WARN] Missing permissions to delete approval request {message.id}"
+                )
+            except discord.HTTPException as e:
+                await self._log(
+                    f"[WARN] Failed to delete approval request {message.id}: {e}"
+                )
 
     async def on_rules_acknowledge(self, interaction: discord.Interaction):
         if not isinstance(interaction.user, discord.Member):
@@ -103,19 +253,6 @@ class OnboardingCog(commands.Cog):
                 ephemeral=True,
             )
             return
-
-    async def _on_rules_acknowledge_via_reaction(self, member: discord.Member):
-        if await self._member_has_approved_role(member):
-            return
-
-        try:
-            await member.send(
-                "Thanks for accepting the rules! A moderator will review your request shortly."
-            )
-        except discord.Forbidden:
-            await self._log(f"[WARN] Could not DM {member.display_name} (DMs closed).")
-
-        await self._post_approval_request(member)
 
     async def _member_has_approved_role(self, member: discord.Member) -> bool:
         approved_role = await self.client.get_role_for_approved()

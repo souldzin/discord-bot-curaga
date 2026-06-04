@@ -59,10 +59,10 @@ class RedactionCog(commands.Cog):
         if self.bot.user and payload.user_id == self.bot.user.id:
             return False
 
-        if payload.message_id == self.config.message_id_rules:
+        if payload.channel_id in self.config.redaction_ignore_channel_ids:
             return False
 
-        if payload.channel_id in self.config.redaction_ignore_channel_ids:
+        if payload.channel_id == self.config.channel_id_rules:
             return False
 
         if (

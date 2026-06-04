@@ -13,22 +13,19 @@ This is a simple Discord bot equipped with some random magic.
 5. The bot posts an approval request embed in the approval channel.
 6. Moderators click **Approve** or **Reject**.
 7. On **Approve**, the bot assigns the configured approved role.
+8. Admins can run `/purge_approval_requests` to clean up resolved requests.
 
 ### Redaction
 
 - Optional redaction mode can delete messages after enough `REDACTION_EMOJI` reactions.
 - Redaction can be scoped with `REDACTION_CHANNEL_ID` and/or `REDACTION_IGNORE_CHANNEL_IDS`.
 
-### Onboarding (Legacy)
-
-- The legacy flow still supports acknowledging the rules via reaction on the old rules message.
-- This path is kept for migration, but is intended to be removed later.
-
-Notes:
+### Notes
 
 - Approval buttons are persistent across restarts.
 - The bot logs status and warnings to the log channel.
 - A heartbeat message is posted every 10 minutes.
+- Admins can purge resolved approval requests with `/purge_approval_requests`.
 
 ## Configuration
 
@@ -53,11 +50,8 @@ CHANNEL_ID_LOG=
 # Moderator approval channel ID
 CHANNEL_ID_APPROVAL=
 
-# Rules channel used by /curaga_rules_sync
+# Rules channel used by /rules_sync
 CHANNEL_ID_RULES=
-
-# Emoji that triggers onboarding reaction
-APPROVAL_EMOJI=👍
 
 # If '1' or 'true', bot logs actions but does not assign roles
 DRY_RUN=0

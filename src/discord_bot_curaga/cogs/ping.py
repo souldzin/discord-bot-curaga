@@ -9,7 +9,7 @@ class PingCog(commands.Cog):
         description="Ping pong.",
     )
     @app_commands.guild_only()
-    async def curaga_rules_sync(self, interaction: discord.Interaction):
+    async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message("Pong!", ephemeral=True)
 
 
