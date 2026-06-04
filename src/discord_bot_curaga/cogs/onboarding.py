@@ -48,24 +48,53 @@ class OnboardingCog(commands.Cog):
         if self.bot.user and payload.user_id == self.bot.user.id:
             return
 
-        if payload.message_id != self.config.message_id_rules:
+        if payload.guild_id != self.config.guild_id:
             return
 
         if str(payload.emoji) != self.config.approval_emoji:
             return
 
-        if payload.guild_id != self.config.guild_id:
+        if payload.message_id != self.config.message_id_rules:
             return
 
         member = await self.client.get_guild_member(payload.user_id)
         if member is None:
             return
 
-        approved_role = await self.client.get_role_for_approved()
-        if approved_role in member.roles:
-            await self._log(
-                f"Ignoring rules reaction from {member.display_name}; already has {approved_role.name}."
+        await self._on_rules_acknowledge_via_reaction(member)
+
+    async def _log(self, message: str):
+        self.ctx.logger.info(message)
+
+    async def on_rules_acknowledge(self, interaction: discord.Interaction):
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message(
+                "This action can only be used in a server.", ephemeral=True
             )
+            return
+
+        if interaction.guild_id != self.config.guild_id:
+            await interaction.response.send_message(
+                "This action can only be used in the configured server.",
+                ephemeral=True,
+            )
+            return
+
+        if await self._member_has_approved_role(interaction.user):
+            await interaction.response.send_message(
+                "Thanks for accepting the rules again - you already have access.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.send_message(
+            "Thanks for accepting the rules! A moderator will review your request shortly.",
+            ephemeral=True,
+        )
+        await self._post_approval_request(interaction.user)
+
+    async def _on_rules_acknowledge_via_reaction(self, member: discord.Member):
+        if await self._member_has_approved_role(member):
             return
 
         try:
@@ -77,15 +106,21 @@ class OnboardingCog(commands.Cog):
 
         await self._post_approval_request(member)
 
-    async def _log(self, message: str):
-        self.ctx.logger.info(message)
+    async def _member_has_approved_role(self, member: discord.Member) -> bool:
+        approved_role = await self.client.get_role_for_approved()
+        if approved_role in member.roles:
+            await self._log(
+                f"Ignoring rules acknowledgement from {member.display_name}; already has {approved_role.name}."
+            )
+            return True
+        return False
 
     async def _post_approval_request(self, member: discord.Member):
         channel = await self.client.get_channel_approval()
 
         embed = discord.Embed(
             title="Approval Request",
-            description=f"{member.mention} reacted with {self.config.approval_emoji} to the rules message.",
+            description=f"{member.mention} acknowledged the server rules.",
             color=discord.Color.gold(),
         )
         embed.add_field(name="Member", value=f"{member} (`{member.id}`)", inline=False)

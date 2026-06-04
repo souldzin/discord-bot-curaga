@@ -35,11 +35,17 @@ MESSAGE_ID_RULES=
 # Role assigned when approved
 ROLE_ID_APPROVED=
 
+# Role allowed to run admin-only commands
+ROLE_ID_ADMIN=
+
 # Bot log channel ID (optional but recommended)
 CHANNEL_ID_LOG=
 
 # Moderator approval channel ID
 CHANNEL_ID_APPROVAL=
+
+# Rules channel used by /curaga_rules_sync
+CHANNEL_ID_RULES=
 
 # Emoji that triggers onboarding reaction
 APPROVAL_EMOJI=👍

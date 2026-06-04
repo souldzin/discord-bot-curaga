@@ -8,8 +8,10 @@ def test_create_from_env_parses_redaction_ignore_channels(monkeypatch):
     monkeypatch.setenv("GUILD_ID", "1")
     monkeypatch.setenv("MESSAGE_ID_RULES", "2")
     monkeypatch.setenv("ROLE_ID_APPROVED", "3")
-    monkeypatch.setenv("CHANNEL_ID_LOG", "4")
-    monkeypatch.setenv("CHANNEL_ID_APPROVAL", "5")
+    monkeypatch.setenv("ROLE_ID_ADMIN", "4")
+    monkeypatch.setenv("CHANNEL_ID_LOG", "5")
+    monkeypatch.setenv("CHANNEL_ID_APPROVAL", "6")
+    monkeypatch.setenv("CHANNEL_ID_RULES", "7")
     monkeypatch.setenv("DRY_RUN", "true")
     monkeypatch.setenv("REDACTION_ENABLED", "1")
     monkeypatch.setenv("REDACTION_THRESHOLD", "7")
@@ -18,6 +20,8 @@ def test_create_from_env_parses_redaction_ignore_channels(monkeypatch):
 
     config = AppConfig.create_from_env()
 
+    assert config.role_id_admin == 4
+    assert config.channel_id_rules == 7
     assert config.dry_run is True
     assert config.redaction_enabled is True
     assert config.redaction_threshold == 7

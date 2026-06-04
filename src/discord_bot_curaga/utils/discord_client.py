@@ -47,6 +47,21 @@ class DiscordClient:
         return role
 
     @async_cache
+    async def get_role_for_admin(self) -> discord.Role:
+        guild = await self.get_guild()
+        role_id = self._config.role_id_admin
+        role = guild.get_role(role_id)
+
+        if role is None:
+            self._logger.warning(
+                f"Required admin role not found: {role_id}",
+                extra={"skip_discord": True},
+            )
+            raise RuntimeError(f"Required admin role not found: {role_id}")
+
+        return role
+
+    @async_cache
     async def get_channel_log(self) -> discord.abc.Messageable | None:
         channel_id = self._config.channel_id_log
         channel_log = self._bot.get_channel(channel_id)
@@ -124,6 +139,89 @@ class DiscordClient:
             raise RuntimeError(f"Required approval channel not found: {channel_id}")
 
         return channel
+
+    @async_cache
+    async def get_channel_rules(self) -> discord.TextChannel | discord.Thread:
+        channel_id = self._config.channel_id_rules
+        channel = self._bot.get_channel(channel_id)
+
+        if channel is None:
+            try:
+                channel = await self._bot.fetch_channel(channel_id)
+            except discord.NotFound as e:
+                self._logger.warning(
+                    f"Required rules channel not found: {channel_id}",
+                    extra={"skip_discord": True},
+                )
+                raise RuntimeError(
+                    f"Required rules channel not found: {channel_id}"
+                ) from e
+            except discord.Forbidden as e:
+                self._logger.warning(
+                    f"Missing permissions to fetch rules channel: {channel_id}",
+                    extra={"skip_discord": True},
+                )
+                raise RuntimeError(
+                    f"Required rules channel not found: {channel_id}"
+                ) from e
+            except discord.HTTPException as e:
+                self._logger.warning(
+                    f"Failed to fetch rules channel {channel_id}: {e}",
+                    extra={"skip_discord": True},
+                )
+                raise RuntimeError(
+                    f"Required rules channel not found: {channel_id}"
+                ) from e
+
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            self._logger.warning(
+                f"Rules channel does not support message purge/send: {channel_id}",
+                extra={"skip_discord": True},
+            )
+            raise RuntimeError(f"Required rules channel not found: {channel_id}")
+
+        return channel
+
+    async def fetch_message(
+        self, channel_id: int, message_id: int
+    ) -> discord.Message | None:
+        channel = self._bot.get_channel(channel_id)
+        if channel is None:
+            try:
+                channel = await self._bot.fetch_channel(channel_id)
+            except discord.DiscordException as e:
+                self._logger.warning(
+                    f"Could not fetch channel {channel_id}: {e}",
+                    extra={"skip_discord": True},
+                )
+                return None
+
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            self._logger.warning(
+                f"Channel {channel_id} does not support message fetches",
+                extra={"skip_discord": True},
+            )
+            return None
+
+        try:
+            return await channel.fetch_message(message_id)
+        except discord.NotFound:
+            self._logger.warning(
+                f"Could not find message {message_id} in channel {channel_id}",
+                extra={"skip_discord": True},
+            )
+        except discord.Forbidden:
+            self._logger.warning(
+                f"Missing permissions to fetch message {message_id} in channel {channel_id}",
+                extra={"skip_discord": True},
+            )
+        except discord.HTTPException as e:
+            self._logger.warning(
+                f"Failed to fetch message {message_id} in channel {channel_id}: {e}",
+                extra={"skip_discord": True},
+            )
+
+        return None
 
     async def get_guild_member(self, user_id: int) -> discord.Member | None:
         guild = await self.get_guild()
