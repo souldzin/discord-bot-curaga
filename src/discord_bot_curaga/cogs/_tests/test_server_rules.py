@@ -51,6 +51,8 @@ def _make_config(**overrides):
         redaction_emoji="❌",
         redaction_channel_id=None,
         redaction_ignore_channel_ids=[],
+        retention_period_hours=0,
+        retention_protected_channel_ids=[],
     )
 
 

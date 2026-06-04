@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 
 
@@ -17,7 +17,7 @@ def _optional_int_list_env(name: str) -> list[int]:
     return [int(item.strip()) for item in value.split(",") if item.strip()]
 
 
-@dataclass
+@dataclass(frozen=True)
 class AppConfig:
     token: str
     guild_id: int
@@ -32,6 +32,8 @@ class AppConfig:
     redaction_emoji: str
     redaction_channel_id: int | None
     redaction_ignore_channel_ids: list[int]
+    retention_period_hours: int | None = None
+    retention_protected_channel_ids: list[int] = field(default_factory=list)
 
     @staticmethod
     def create_from_env() -> "AppConfig":
@@ -51,5 +53,9 @@ class AppConfig:
             redaction_channel_id=_optional_int_env("REDACTION_CHANNEL_ID"),
             redaction_ignore_channel_ids=_optional_int_list_env(
                 "REDACTION_IGNORE_CHANNEL_IDS"
+            ),
+            retention_period_hours=_optional_int_env("RETENTION_PERIOD_HOURS"),
+            retention_protected_channel_ids=_optional_int_list_env(
+                "RETENTION_PERIOD_PROTECTED_CHANNELS"
             ),
         )

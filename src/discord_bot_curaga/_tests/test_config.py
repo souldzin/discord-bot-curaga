@@ -16,6 +16,8 @@ def test_create_from_env_parses_redaction_ignore_channels(monkeypatch):
     monkeypatch.setenv("REDACTION_THRESHOLD", "7")
     monkeypatch.setenv("REDACTION_EMOJI", "❌")
     monkeypatch.setenv("REDACTION_IGNORE_CHANNEL_IDS", "11, 22,33")
+    monkeypatch.setenv("RETENTION_PERIOD_HOURS", "24")
+    monkeypatch.setenv("RETENTION_PERIOD_PROTECTED_CHANNELS", "44,55")
 
     config = AppConfig.create_from_env()
 
@@ -25,3 +27,5 @@ def test_create_from_env_parses_redaction_ignore_channels(monkeypatch):
     assert config.redaction_enabled is True
     assert config.redaction_threshold == 7
     assert config.redaction_ignore_channel_ids == [11, 22, 33]
+    assert config.retention_period_hours == 24
+    assert config.retention_protected_channel_ids == [44, 55]
