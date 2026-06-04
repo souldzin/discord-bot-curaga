@@ -104,11 +104,6 @@ class OnboardingCog(commands.Cog):
             )
             return
 
-        await interaction.followup.send(
-            "A moderator will let you in shortly.",
-            ephemeral=True,
-        )
-
     async def _on_rules_acknowledge_via_reaction(self, member: discord.Member):
         if await self._member_has_approved_role(member):
             return

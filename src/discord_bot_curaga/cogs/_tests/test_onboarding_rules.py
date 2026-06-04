@@ -150,15 +150,11 @@ class TestOnboardingRules:
             await self.subject.on_rules_acknowledge(interaction)
 
             as_async_mock(interaction.response.send_message).assert_awaited_once_with(
-                "Thanks for accepting the rules! We\'ll let the mods know you\'re here.",
+                "Thanks for accepting the rules! We'll let the mods know you're here.",
                 ephemeral=True,
             )
             as_async_mock(self.subject._post_approval_request).assert_awaited_once_with(
                 self.member
-            )
-            as_async_mock(interaction.followup.send).assert_awaited_once_with(
-                "A moderator will review your request shortly.",
-                ephemeral=True,
             )
 
         asyncio.run(run())
