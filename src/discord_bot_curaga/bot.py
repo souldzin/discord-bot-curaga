@@ -35,12 +35,14 @@ class CuragaBot(commands.Bot):
             onboarding,
             redaction,
             server_rules,
+            ping,
         )
 
         await onboarding.setup(self, self._ctx)
         await heartbeat.setup(self, self._ctx)
         await redaction.setup(self, self._ctx)
         await server_rules.setup(self, self._ctx)
+        await ping.setup(self)
 
         guild = discord.Object(id=self._ctx.config.guild_id)
         self.tree.copy_global_to(guild=guild)

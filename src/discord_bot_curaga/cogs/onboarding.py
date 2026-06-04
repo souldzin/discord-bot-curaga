@@ -88,10 +88,26 @@ class OnboardingCog(commands.Cog):
             return
 
         await interaction.response.send_message(
-            "Thanks for accepting the rules! A moderator will review your request shortly.",
+            "Thanks for accepting the rules! We'll let the mods know you're here.",
             ephemeral=True,
         )
-        await self._post_approval_request(interaction.user)
+
+        try:
+            await self._post_approval_request(interaction.user)
+        except Exception as e:
+            self.ctx.logger.warning(
+                f"Failed to create approval request: {e}", extra={"skip_discord": True}
+            )
+            await interaction.followup.send(
+                "I couldn't create the approval request right now. Please ask for help in #git-help.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.followup.send(
+            "A moderator will let you in shortly.",
+            ephemeral=True,
+        )
 
     async def _on_rules_acknowledge_via_reaction(self, member: discord.Member):
         if await self._member_has_approved_role(member):
