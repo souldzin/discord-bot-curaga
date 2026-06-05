@@ -36,5 +36,13 @@ jobs:
       - name: Trigger Dokploy deploy
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          DEPLOY_API_KEY: ${{ secrets.DEPLOY_API_KEY }}
+          DEPLOY_APP_ID: ${{ secrets.DEPLOY_APP_ID }}
         run: |
-          curl -fsSL -X POST "$DEPLOY_URL"
+          set -eu
+
+          curl -fsSL \
+            -X POST "$DEPLOY_URL" \
+            -H "x-api-key: $DEPLOY_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"applicationId\":\"$DEPLOY_APP_ID\"}"
