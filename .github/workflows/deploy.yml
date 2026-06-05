@@ -1,0 +1,40 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: read
+
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve main branch sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          SHA=$(gh api "repos/$REPO/git/ref/heads/main" --jq '.object.sha')
+          echo "SHA=$SHA" >> "$GITHUB_ENV"
+
+      - name: Verify CI Check status on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          status_state=$(gh api "repos/$REPO/commits/$SHA/status" --jq '.statuses[] | select(.context == "CI Check") | .state' | head -n 1)
+
+          if [ "$status_state" != "success" ]; then
+            echo "CI Check status is not passing for $SHA (got: ${status_state:-missing})"
+            exit 1
+          fi
+
+      - name: Trigger Dokploy deploy
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+        run: |
+          curl -fsSL -X POST "$DEPLOY_URL"
