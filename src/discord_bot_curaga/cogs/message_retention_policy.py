@@ -75,7 +75,7 @@ class MessageRetentionPolicyCog(commands.Cog):
     @tasks.loop(time=get_every_hour())
     async def purge_old_messages_via_loop(self):
         self.ctx.logger.info(
-            f"Starting retention policy purge for {self.config.retention_period_hours} hours."
+            f"Starting retention policy purge for messages older than {self.config.retention_period_hours} hours."
         )
 
         await self._purge_old_messages()
