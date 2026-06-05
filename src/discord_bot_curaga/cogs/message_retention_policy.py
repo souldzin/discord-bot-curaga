@@ -6,11 +6,12 @@ from datetime import datetime, timedelta, timezone
 
 import discord
 from discord import TextChannel, Thread, app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from discord_bot_curaga.context import AppContext
 from discord_bot_curaga.utils.discord_types import ChannelWithDeleteMessages
 from discord_bot_curaga.utils.iter import chunked
+from discord_bot_curaga.utils.time import get_every_hour
 from discord_bot_curaga.views.retention_confirmation import (
     RetentionConfirmationView,
 )
@@ -58,11 +59,26 @@ class MessageRetentionPolicyCog(commands.Cog):
     def config(self):
         return self.ctx.config
 
+    async def cog_unload(self):
+        if self.purge_old_messages_via_loop.is_running():
+            self.purge_old_messages_via_loop.stop()
+
     @commands.Cog.listener()
     async def on_ready(self):
+        if not self.purge_old_messages_via_loop.is_running():
+            self.purge_old_messages_via_loop.start()
+
         if not self._views_registered:
             self.bot.add_view(self._retention_confirmation_view())
             self._views_registered = True
+
+    @tasks.loop(time=get_every_hour())
+    async def purge_old_messages_via_loop(self):
+        self.ctx.logger.info(
+            f"Starting retention policy purge for {self.config.retention_period_hours} hours."
+        )
+
+        await self._purge_old_messages()
 
     @app_commands.command(
         name="purge_old_messages",
@@ -251,20 +267,12 @@ class MessageRetentionPolicyCog(commands.Cog):
                 await channel.delete()
                 self.ctx.logger.info(f"Deleted old thread {channel_label}")
             except discord.Forbidden as e:
-                self.ctx.logger.warning(
-                    f"[WARN] Missing permissions to delete thread {channel_label}",
-                )
-                self.ctx.logger.warning(
-                    f"[WARN] Missing permissions to delete thread {channel_label}: {e}",
-                    extra={"skip_discord": True},
+                self._log_warning_with_exception(
+                    f"[WARN] Missing permissions to delete thread {channel_label}", e
                 )
             except discord.HTTPException as e:
-                self.ctx.logger.warning(
-                    f"[WARN] Failed to delete thread {channel_label}",
-                )
-                self.ctx.logger.warning(
-                    f"[WARN] Failed to delete thread {channel_label}: {e}",
-                    extra={"skip_discord": True},
+                self._log_warning_with_exception(
+                    f"[WARN] Failed to delete thread {channel_label}", e
                 )
 
         return ChannelPurgeSummary(
@@ -365,7 +373,8 @@ class MessageRetentionPolicyCog(commands.Cog):
     ) -> bool:
         async for message in thread.history(limit=1, oldest_first=False):
             return message.created_at < cutoff
-        return False
+
+        return thread.created_at < cutoff if thread.created_at else False
 
     async def _delete_recent_batch(
         self, channel: ChannelWithDeleteMessages, batch: list[discord.Message]
@@ -377,14 +386,13 @@ class MessageRetentionPolicyCog(commands.Cog):
             await channel.delete_messages(batch)
             return len(batch), 0
         except discord.Forbidden:
-            self.ctx.logger.warning(
-                f"[WARN] Missing permissions to bulk delete messages in {self._format_channel_label(channel)}",
-                extra={"skip_discord": True},
+            self._log_warning(
+                f"Missing permissions to bulk delete messages in {self._format_channel_label(channel)}"
             )
         except discord.HTTPException as e:
-            self.ctx.logger.warning(
-                f"[WARN] Failed to bulk delete messages in {self._format_channel_label(channel)}: {e}",
-                extra={"skip_discord": True},
+            self._log_warning_with_exception(
+                f"Failed to bulk delete messages in {self._format_channel_label(channel)}",
+                e,
             )
 
         return 0, len(batch)
@@ -397,6 +405,14 @@ class MessageRetentionPolicyCog(commands.Cog):
             f"Purged {summary.deleted} message(s) across {summary.channels_with_candidates} "
             f"channel(s)."
         )
+
+    def _log_warning(self, msg: str):
+        self.ctx.logger.warning(f"[WARN] {msg}")
+
+    def _log_warning_with_exception(self, msg: str, e: Exception):
+        # reason: log once to discord+local, and once to local with exception
+        self.ctx.logger.warning(f"[WARN] {msg}")
+        self.ctx.logger.warning(f"[WARN] {msg}: {e}", extra={"skip_discord": True})
 
 
 async def setup(bot: commands.Bot, ctx: AppContext):
