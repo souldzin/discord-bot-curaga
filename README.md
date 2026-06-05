@@ -20,6 +20,16 @@ This is a simple Discord bot equipped with some random magic.
 - Optional redaction mode can delete messages after enough `REDACTION_EMOJI` reactions.
 - Redaction can be scoped with `REDACTION_CHANNEL_ID` and/or `REDACTION_IGNORE_CHANNEL_IDS`.
 
+### Retention Policy
+
+- Optional retention cleanup deletes old messages after `RETENTION_PERIOD_HOURS`.
+- Text channels: delete messages older than the cutoff.
+- Threads: delete the whole thread if its newest message is older than the cutoff.
+- Pinned messages are skipped.
+- `RETENTION_PERIOD_PROTECTED_CHANNELS` can be used to exclude channel IDs (including forum parents / thread parents).
+- The rules channel and log channel are always skipped.
+- Retention can be run manually via `/purge_old_messages`, and it also has an hourly background task.
+
 ### Notes
 
 - Approval buttons are persistent across restarts.
@@ -56,6 +66,11 @@ CHANNEL_ID_RULES=
 
 # If '1' or 'true', bot logs actions but does not assign roles
 DRY_RUN=0
+
+# Retention cleanup (delete messages older than this many hours)
+RETENTION_PERIOD_HOURS=
+# Optional comma-separated channel IDs that should never be considered for retention cleanup
+RETENTION_PERIOD_PROTECTED_CHANNELS=
 
 # Redaction feature (delete and replace messages after enough ❌ reactions)
 REDACTION_ENABLED=0
