@@ -73,6 +73,7 @@ class TestRetention:
         )
         self.channel = SimpleNamespace(
             id=42,
+            name=f"retention-test{retention_module.HOURGLASS_EMOJI_1}",
             mention="#retention-test",
             history=mocker.Mock(side_effect=self._history_side_effect),
             delete_messages=mocker.AsyncMock(),
@@ -119,6 +120,7 @@ class TestRetention:
         channel_id: int,
         messages: list = [],
         history_error: Exception | None = None,
+        retention_enabled: bool = True,
     ):
         def history_side_effect(*args, **kwargs):
             if history_error:
@@ -136,8 +138,11 @@ class TestRetention:
 
             return AsyncHistoryIterator(items)
 
+        retention_flag = retention_module.HOURGLASS_EMOJI_1 if retention_enabled else ""
+
         return SimpleNamespace(
             id=channel_id,
+            name=f"channel-{channel_id}{retention_flag}",
             mention=f"#channel-{channel_id}",
             history=mocker.Mock(side_effect=history_side_effect),
             delete_messages=mocker.AsyncMock(),
@@ -242,6 +247,71 @@ class TestRetention:
                     confirm_interaction.edit_original_response
                 ).call_args.kwargs["view"]
                 is None
+            )
+
+        asyncio.run(run())
+
+    def test_retention_requires_channel_emoji_flag(self, mocker):
+        self.setup_test_subject(mocker)
+
+        eligible_message = SimpleNamespace(
+            pinned=False,
+            created_at=datetime.now(timezone.utc) - timedelta(hours=30),
+        )
+
+        flagged_channel = self._make_channel(mocker, 100, [eligible_message])
+        unflagged_channel = self._make_channel(
+            mocker,
+            101,
+            history_error=AssertionError(
+                "history() should not be called for channels without retention emoji flag"
+            ),
+            retention_enabled=False,
+        )
+
+        self.guild = SimpleNamespace(
+            text_channels=[flagged_channel, unflagged_channel],
+            threads=[],
+        )
+        self.client.get_guild = mocker.AsyncMock(return_value=self.guild)
+
+        interaction = self._make_interaction(mocker)
+
+        async def run():
+            await self.call_command(interaction)
+
+            view = as_async_mock(interaction.response.send_message).call_args.kwargs[
+                "view"
+            ]
+            confirm_button = next(
+                item
+                for item in view.children
+                if getattr(item, "custom_id", None)
+                == RetentionConfirmationView.CONFIRM_ID
+            )
+
+            confirm_interaction = self._make_interaction(
+                mocker,
+                response=SimpleNamespace(
+                    send_message=mocker.AsyncMock(),
+                    defer=mocker.AsyncMock(),
+                    edit_message=mocker.AsyncMock(),
+                ),
+                edit_original_response=mocker.AsyncMock(),
+            )
+
+            await confirm_button.callback(confirm_interaction)
+
+            as_async_mock(flagged_channel.delete_messages).assert_awaited_once_with(
+                [eligible_message]
+            )
+            as_mock(unflagged_channel.history).assert_not_called()
+            as_async_mock(unflagged_channel.delete_messages).assert_not_awaited()
+            assert (
+                as_async_mock(
+                    confirm_interaction.edit_original_response
+                ).call_args.kwargs["content"]
+                == "Purged 1 message(s) across 1 channel(s)."
             )
 
         asyncio.run(run())
