@@ -18,6 +18,10 @@ from discord_bot_curaga.views.retention_confirmation import (
 
 BULK_DELETE_MAX_AGE = timedelta(days=14)
 BULK_DELETE_CHUNK_SIZE = 100
+HOURGLASS_EMOJI_1 = "\u231b\ufe0f"
+HOURGLASS_EMOJI_2 = "\u231b"
+HOURGLASS_EMOJI_3 = "\u23f3"
+HOURGLASS_EMOJIS = [HOURGLASS_EMOJI_1, HOURGLASS_EMOJI_2, HOURGLASS_EMOJI_3]
 
 
 @dataclass
@@ -166,7 +170,18 @@ class MessageRetentionPolicyCog(commands.Cog):
             return f"#{name}"
         return str(getattr(channel, "id", "unknown-channel"))
 
+    def _has_retention_emoji_flag(self, channel: ChannelWithDeleteMessages) -> bool:
+        channel_name = channel.name.strip()
+
+        return any((1 for x in HOURGLASS_EMOJIS if channel_name.endswith(x)))
+
     def _is_skipped_channel(self, channel: ChannelWithDeleteMessages) -> bool:
+        # note: skip all channels that DO NOT have the emoji flag.
+        # the presence of the emoji flag, opts a channel in for retention
+        # period purging.
+        if not self._has_retention_emoji_flag(channel):
+            return True
+
         protected_ids = set(self.config.retention_protected_channel_ids)
         protected_ids.update({self.config.channel_id_rules, self.config.channel_id_log})
 
