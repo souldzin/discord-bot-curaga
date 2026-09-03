@@ -23,10 +23,12 @@ This is a simple Discord bot equipped with some random magic.
 ### Retention Policy
 
 - Optional retention cleanup deletes old messages after `RETENTION_PERIOD_HOURS`.
-- Text channels: delete messages older than the cutoff.
-- Threads: delete the whole thread if its newest message is older than the cutoff.
+- Retention cleanup is opt-in per channel/thread: the channel or thread name must end with an hourglass emoji (`⌛️`, `⌛`, or `⏳`).
+- Text channels with the emoji flag: delete messages older than the cutoff.
+- Threads with the emoji flag: delete the whole thread if its newest message is older than the cutoff.
+- Channels/threads without the emoji flag are skipped.
 - Pinned messages are skipped.
-- `RETENTION_PERIOD_PROTECTED_CHANNELS` can be used to exclude channel IDs (including forum parents / thread parents).
+- `RETENTION_PERIOD_PROTECTED_CHANNELS` can be used to exclude channel IDs (including forum parents / thread parents), even if they have the emoji flag.
 - The rules channel and log channel are always skipped.
 - Retention can be run manually via `/purge_old_messages`, and it also has an hourly background task.
 
@@ -68,8 +70,10 @@ CHANNEL_ID_RULES=
 DRY_RUN=0
 
 # Retention cleanup (delete messages older than this many hours)
+# Only channels/threads whose names end with an hourglass emoji (⌛️, ⌛, or ⏳) are purged.
 RETENTION_PERIOD_HOURS=
-# Optional comma-separated channel IDs that should never be considered for retention cleanup
+# Optional comma-separated channel IDs that should never be considered for retention cleanup,
+# even if they have the hourglass emoji flag
 RETENTION_PERIOD_PROTECTED_CHANNELS=
 
 # Redaction feature (delete and replace messages after enough ❌ reactions)
